@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CTF Python 环境搭建</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f5f6f2;
+    --surface:#ffffff;
+    --surface-alt:#ebede6;
+    --text:#1b1f1c;
+    --text-muted:#5c655d;
+    --border:#dcdfd5;
+    --accent:#c2531e;
+    --accent-soft:#f4e3d6;
+    --accent-2:#3d7a58;
+    --accent-2-soft:#dfeee5;
+    --danger:#a83a2f;
+    --danger-soft:#f6e0dc;
+    --code-bg:#1b1f1c;
+    --code-text:#e9ebe4;
+    --code-muted:#8f988f;
+    --shadow: 0 1px 2px rgba(20,22,18,0.04), 0 6px 20px rgba(20,22,18,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15181a; --surface:#1c2023; --surface-alt:#22262a;
+      --text:#e9ebe6; --text-muted:#9aa39a; --border:#2d3230;
+      --accent:#e28248; --accent-soft:#3a2c22;
+      --accent-2:#6cb890; --accent-2-soft:#1f342a;
+      --danger:#e2786d; --danger-soft:#3a2422;
+      --code-bg:#101314; --code-text:#e9ebe4; --code-muted:#6f7a70;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15181a; --surface:#1c2023; --surface-alt:#22262a;
+    --text:#e9ebe6; --text-muted:#9aa39a; --border:#2d3230;
+    --accent:#e28248; --accent-soft:#3a2c22;
+    --accent-2:#6cb890; --accent-2-soft:#1f342a;
+    --danger:#e2786d; --danger-soft:#3a2422;
+    --code-bg:#101314; --code-text:#e9ebe4; --code-muted:#6f7a70;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Sans", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-weight:600; text-wrap:balance; letter-spacing:-0.01em;}
+  code, pre, .mono{font-family:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;}
+
+  .shell{
+    max-width:1180px; margin:0 auto; padding:48px 28px 96px;
+    display:grid; grid-template-columns:220px minmax(0,1fr); gap:56px;
+  }
+  @media (max-width:880px){ .shell{grid-template-columns:1fr; padding:28px 18px 72px;} .nav{display:none;} }
+
+  .masthead{ grid-column:1/-1; padding-bottom:36px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono", monospace; font-size:12.5px; letter-spacing:0.08em;
+    color:var(--accent); background:var(--accent-soft);
+    padding:5px 10px 5px 8px; border-radius:4px; margin-bottom:18px;
+  }
+  .eyebrow::before{content:"❯";}
+  .masthead h1{ font-size:clamp(28px,4vw,40px); margin:0 0 14px; }
+  .masthead p{ max-width:640px; color:var(--text-muted); font-size:16px; margin:0; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+  .meta-chip{
+    font-size:12.5px; font-family:"IBM Plex Mono",monospace; color:var(--text-muted);
+    border:1px solid var(--border); background:var(--surface); padding:5px 10px; border-radius:5px;
+  }
+
+  .nav{ position:sticky; top:32px; align-self:start; display:flex; flex-direction:column; gap:2px; }
+  .nav a{
+    display:flex; gap:10px; align-items:baseline; padding:8px 10px; border-radius:6px;
+    color:var(--text-muted); text-decoration:none; font-size:14px; border-left:2px solid transparent;
+  }
+  .nav a .n{ font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--code-muted); }
+  .nav a:hover{ background:var(--surface-alt); color:var(--text); }
+  .nav a.active{ color:var(--text); background:var(--surface-alt); border-left-color:var(--accent); font-weight:500; }
+  .nav a.active .n{ color:var(--accent); }
+
+  main{min-width:0;}
+  .phase{ margin-bottom:64px; scroll-margin-top:28px; }
+  .phase-head{ display:flex; align-items:flex-start; gap:16px; margin-bottom:22px; }
+  .phase-num{
+    font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--accent); background:var(--accent-soft);
+    border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; margin-top:2px;
+  }
+  .phase-head h2{ font-size:22px; margin:0 0 4px; }
+  .phase-head .sub{ color:var(--text-muted); font-size:14.5px; }
+
+  .step{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:20px 22px; margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .step h3{ font-size:15.5px; margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+  .step p{ margin:0 0 12px; font-size:14.5px; color:var(--text); }
+  .step p:last-child{ margin-bottom:0; }
+  .step p.note{ color:var(--text-muted); font-size:13.5px; }
+
+  .where{
+    display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:0.03em;
+    color:var(--text-muted); background:var(--surface-alt); border:1px solid var(--border);
+    padding:2px 8px; border-radius:20px; margin-bottom:10px;
+  }
+  .where.linux{ color:var(--accent-2); background:var(--accent-2-soft); border-color:transparent; }
+  .where.optional{ color:var(--accent); background:var(--accent-soft); border-color:transparent; }
+
+  .codeblock{ position:relative; background:var(--code-bg); border-radius:8px; margin:10px 0 14px; overflow:hidden; }
+  .codeblock .bar{ display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .codeblock .bar span{ font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--code-muted); letter-spacing:0.04em; }
+  .copy-btn{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; background:transparent;
+    border:1px solid rgba(255,255,255,0.15); color:var(--code-muted); padding:3px 9px; border-radius:5px; cursor:pointer;
+  }
+  .copy-btn:hover{ color:var(--code-text); border-color:rgba(255,255,255,0.35); }
+  .copy-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .codeblock pre{ margin:0; padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.7; color:var(--code-text); }
+  .codeblock pre .c{ color:var(--code-muted); }
+
+  .callout{ border-radius:10px; padding:16px 18px; margin:16px 0; font-size:14px; display:flex; gap:12px; }
+  .callout .icon{ flex-shrink:0; font-family:"IBM Plex Mono",monospace; font-weight:600; }
+  .callout.warn{ background:var(--danger-soft); color:var(--text); }
+  .callout.warn .icon{ color:var(--danger); }
+  .callout.tip{ background:var(--accent-2-soft); color:var(--text); }
+  .callout.tip .icon{ color:var(--accent-2); }
+  .callout p{ margin:0 0 6px; }
+  .callout p:last-child{ margin:0; }
+
+  table.check{
+    width:100%; border-collapse:collapse; font-size:14px; background:var(--surface);
+    border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  }
+  table.check th, table.check td{ text-align:left; padding:11px 14px; border-bottom:1px solid var(--border); }
+  table.check th{ background:var(--surface-alt); font-size:12px; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); font-weight:600; }
+  table.check tr:last-child td{ border-bottom:none; }
+  table.check td.cmd{ font-family:"IBM Plex Mono",monospace; font-size:13px; white-space:nowrap; }
+  table.check td.exp{ color:var(--text-muted); }
+
+  .tree{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:16px 20px; font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.9; color:var(--text);
+    margin:10px 0 14px;
+  }
+  .tree .dim{ color:var(--text-muted); }
+
+  footer{
+    grid-column:1/-1; margin-top:24px; padding-top:22px; border-top:1px solid var(--border);
+    color:var(--text-muted); font-size:13px;
+  }
+  @media (prefers-reduced-motion: no-preference){ html{ scroll-behavior:smooth; } }
+</style>
+
+<div class="shell">
+  <div class="masthead">
+    <span class="eyebrow">wsl · ubuntu · ctf</span>
+    <h1>CTF Python 环境搭建</h1>
+    <p>在刚装好的 WSL Ubuntu 里,给打 CTF 用的 Python 搭一套干净环境:每题一个 venv、装好 pwntools 和常用工具链,密码学重型计算再按需接 conda,不再出现装东西权限乱掉的情况。</p>
+    <div class="meta-row">
+      <span class="meta-chip">基础 venv + pip</span>
+      <span class="meta-chip">工具 pwntools</span>
+      <span class="meta-chip">可选 miniconda（仅限密码学）</span>
+    </div>
+  </div>
+
+  <nav class="nav" id="nav">
+    <a href="#base"><span class="n">00</span> 基础依赖</a>
+    <a href="#perchall"><span class="n">01</span> 每题一个环境</a>
+    <a href="#toolchain"><span class="n">02</span> 常用工具链</a>
+    <a href="#conda"><span class="n">03</span> 密码学再上 conda</a>
+    <a href="#habits"><span class="n">04</span> 目录与习惯</a>
+    <a href="#verify"><span class="n">05</span> 验收清单</a>
+  </nav>
+
+  <main>
+
+    <section class="phase" id="base">
+      <div class="phase-head">
+        <span class="phase-num">00</span>
+        <div>
+          <h2>先把系统依赖装齐</h2>
+          <div class="sub">pwntools 和一堆 exploit 依赖要编译 C 扩展，缺这些包会直接装失败</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>一次性系统安装</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>sudo apt update
+sudo apt install -y build-essential python3-dev python3-venv python3-pip \
+  git libssl-dev libffi-dev gdb</pre>
+        </div>
+        <p class="note">这是唯一需要 sudo 的一步，而且只做一次。之后所有 pip 安装都在各自的 venv 里进行，不再需要 sudo。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="perchall">
+      <div class="phase-head">
+        <span class="phase-num">01</span>
+        <div>
+          <h2>每道题一个独立虚拟环境</h2>
+          <div class="sub">不同比赛、不同题目经常要求不同版本的 pwntools 或某个魔改依赖，隔离开最省心</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>新建题目目录并建 venv</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>mkdir -p ~/ctf/<span class="c">比赛名</span>/<span class="c">题目名</span>
+cd ~/ctf/<span class="c">比赛名</span>/<span class="c">题目名</span>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip</pre>
+        </div>
+        <div class="callout tip">
+          <span class="icon">✓</span>
+          <div><p>提示符前面出现 <code>(.venv)</code> 才说明激活成功。之后这道题所有的 <code>pip install</code> 都在这个状态下执行，不加 sudo。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase" id="toolchain">
+      <div class="phase-head">
+        <span class="phase-num">02</span>
+        <div>
+          <h2>装 pwntools 和常用工具链</h2>
+          <div class="sub">exploit 编写、gdb 调试、gadget 搜索这几件事的标配组合</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>1. pwntools 本体</h3>
+        <span class="where linux">Ubuntu 终端 · 已激活 .venv</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>pip install pwntools
+python3 -c "from pwn import *; print('pwntools ok')"</pre>
+        </div>
+        <p class="note">pwntools 自带了 <code>checksec</code> 命令（<code>pwn checksec ./chall</code>），不用单独再装一个 checksec 工具。</p>
+      </div>
+
+      <div class="step">
+        <h3>2. pwndbg —— gdb 的可视化调试插件</h3>
+        <p>pwndbg 是全局挂到 <code>~/.gdbinit</code> 的，不属于某个 venv，装一次全局生效即可，安装脚本本身不需要 sudo：</p>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>cd ~
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+./setup.sh</pre>
+        </div>
+        <p class="note">装完之后随便 <code>gdb ./随便一个二进制</code>，看到 pwndbg 的彩色横幅就说明成功了。</p>
+      </div>
+
+      <div class="step">
+        <h3>3.（可选）one_gadget</h3>
+        <p>找 one-shot RCE gadget 常用，是个 Ruby 工具，跟 Python 环境无关：</p>
+        <span class="where optional">Ubuntu 终端 · 可选</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>sudo apt install -y ruby ruby-dev
+sudo gem install one_gadget</pre>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="icon">!</span>
+        <div><p>WSL 下如果 gdb / pwndbg <strong>attach 不上正在跑的进程</strong>，多半是 ptrace 权限限制导致的，执行一次（每次重启 WSL 后需要重设，不是永久的）：</p>
+          <div class="codeblock" style="margin-top:8px;">
+            <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+            <pre>echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase" id="conda">
+      <div class="phase-head">
+        <span class="phase-num">03</span>
+        <div>
+          <h2>密码学题需要重型计算库时，再接 conda</h2>
+          <div class="sub">不是必装项——遇到格规约、sagemath 这类依赖再装也不迟</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>什么时候才需要</h3>
+        <p>常规 pwn / re / web 题完全用不到。只有做 <strong>lattice attack</strong> 之类需要 <code>fpylll</code>、<code>sagemath</code> 这些底层依赖大量 C 库（GMP、MPFR、FPLLL）的密码学题时，才值得装 —— conda-forge 有编译好的二进制，能省掉自己编译这些库的麻烦。</p>
+      </div>
+      <div class="step">
+        <h3>安装 miniconda（不要 sudo）</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+bash ~/miniconda.sh -b -p ~/miniconda3
+~/miniconda3/bin/conda init bash</pre>
+        </div>
+        <p class="note">装完关掉重开一次终端，让 <code>conda init</code> 生效。默认新开终端会自动进 <code>(base)</code>，如果不想要可以执行 <code>conda config --set auto_activate_base false</code>。</p>
+      </div>
+      <div class="step">
+        <h3>给密码学题单独开一个 conda 环境</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>conda create -n crypto python=3.11 sympy numpy fpylll -c conda-forge
+conda activate crypto</pre>
+        </div>
+        <p class="note">这个环境和前面各题目的 <code>.venv</code> 完全独立，互不干扰；不需要的时候 <code>conda deactivate</code> 退出即可。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="habits">
+      <div class="phase-head">
+        <span class="phase-num">04</span>
+        <div>
+          <h2>目录结构 &amp; 习惯</h2>
+          <div class="sub">按比赛/题目分层，保持权限干净</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>推荐目录结构</h3>
+        <div class="tree">~/ctf/<br>
+&nbsp;&nbsp;└── <span class="dim">2026-somectf</span>/<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="dim">pwn-baby/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;├── .venv/&nbsp;&nbsp;<span class="dim"># 这道题专用</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;├── chall&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dim"># 题目二进制</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;└── solve.py<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="dim">crypto-lattice/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── solve.sage</div>
+        <p class="note">每道题独立文件夹、独立 <code>.venv</code>，磁盘空间很便宜，别舍不得建；用完的旧题目目录整个删掉就是干净卸载，不影响其它题目。</p>
+      </div>
+      <div class="step">
+        <h3>三条硬规矩</h3>
+        <p>1. 看到 <code>(.venv)</code> 或 <code>(crypto)</code> 才 <code>pip install</code>，不带前缀提示的命令行不装 Python 包。</p>
+        <p>2. 系统级依赖（<code>apt</code>、<code>gem</code>）才用 sudo，Python 包永远不用。</p>
+        <p>3. 项目文件全部放在 <code>~/ctf/...</code>（Linux 文件系统），不要放到 <code>/mnt/c/...</code>。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="verify">
+      <div class="phase-head">
+        <span class="phase-num">05</span>
+        <div>
+          <h2>验收清单</h2>
+          <div class="sub">配完照着跑一遍，确认工具链都通了</div>
+        </div>
+      </div>
+      <table class="check">
+        <tr><th>检查项</th><th>命令</th><th>正常结果</th></tr>
+        <tr><td>venv 已激活</td><td class="cmd">which python3</td><td class="exp">路径指向 <code>项目目录/.venv/bin/python3</code></td></tr>
+        <tr><td>pwntools 可用</td><td class="cmd">python3 -c "import pwn"</td><td class="exp">无报错</td></tr>
+        <tr><td>checksec 可用</td><td class="cmd">pwn checksec ./chall</td><td class="exp">打印出 RELRO / Canary / NX / PIE 信息</td></tr>
+        <tr><td>pwndbg 已挂载</td><td class="cmd">gdb ./chall</td><td class="exp">出现 pwndbg 彩色横幅</td></tr>
+        <tr><td>文件属主正常</td><td class="cmd">ls -l ~/ctf</td><td class="exp">属主是你自己，不是 root</td></tr>
+        <tr><td>（如装了）conda 环境独立</td><td class="cmd">conda env list</td><td class="exp">能看到 <code>base</code> 和 <code>crypto</code> 两个环境</td></tr>
+      </table>
+    </section>
+
+  </main>
+
+  <footer>
+    承接 WSL 干净重装指南：先按那份指南装好 WSL2 + Ubuntu，再按这份把 CTF 用的 Python 工具链配起来。
+  </footer>
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var pre = btn.closest('.codeblock').querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(function(){ btn.textContent = old; }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text); done(); });
+      } else { fallbackCopy(text); done(); }
+    });
+  });
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function onScroll(){
+    var pos = window.scrollY + 120;
+    var idx = 0;
+    sections.forEach(function(sec, i){ if(sec && sec.offsetTop <= pos) idx = i; });
+    links.forEach(function(a,i){ a.classList.toggle('active', i===idx); });
+  }
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>

@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WSL 重装指南</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:ital@1&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f5f6f2;
+    --surface:#ffffff;
+    --surface-alt:#ebede6;
+    --text:#1b1f1c;
+    --text-muted:#5c655d;
+    --border:#dcdfd5;
+    --accent:#c2531e;
+    --accent-soft:#f4e3d6;
+    --accent-2:#3d7a58;
+    --accent-2-soft:#dfeee5;
+    --danger:#a83a2f;
+    --danger-soft:#f6e0dc;
+    --code-bg:#1b1f1c;
+    --code-text:#e9ebe4;
+    --code-muted:#8f988f;
+    --shadow: 0 1px 2px rgba(20,22,18,0.04), 0 6px 20px rgba(20,22,18,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15181a;
+      --surface:#1c2023;
+      --surface-alt:#22262a;
+      --text:#e9ebe6;
+      --text-muted:#9aa39a;
+      --border:#2d3230;
+      --accent:#e28248;
+      --accent-soft:#3a2c22;
+      --accent-2:#6cb890;
+      --accent-2-soft:#1f342a;
+      --danger:#e2786d;
+      --danger-soft:#3a2422;
+      --code-bg:#101314;
+      --code-text:#e9ebe4;
+      --code-muted:#6f7a70;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15181a;
+    --surface:#1c2023;
+    --surface-alt:#22262a;
+    --text:#e9ebe6;
+    --text-muted:#9aa39a;
+    --border:#2d3230;
+    --accent:#e28248;
+    --accent-soft:#3a2c22;
+    --accent-2:#6cb890;
+    --accent-2-soft:#1f342a;
+    --danger:#e2786d;
+    --danger-soft:#3a2422;
+    --code-bg:#101314;
+    --code-text:#e9ebe4;
+    --code-muted:#6f7a70;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"IBM Plex Sans", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-weight:600;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  code, pre, .mono{
+    font-family:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  .shell{
+    max-width:1180px;
+    margin:0 auto;
+    padding:48px 28px 96px;
+    display:grid;
+    grid-template-columns:220px minmax(0,1fr);
+    gap:56px;
+  }
+  @media (max-width:880px){
+    .shell{grid-template-columns:1fr; padding:28px 18px 72px;}
+    .nav{display:none;}
+  }
+
+  /* ---- header ---- */
+  .masthead{
+    grid-column:1/-1;
+    padding-bottom:36px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:12.5px;
+    letter-spacing:0.08em;
+    color:var(--accent);
+    background:var(--accent-soft);
+    padding:5px 10px 5px 8px;
+    border-radius:4px;
+    margin-bottom:18px;
+  }
+  .eyebrow::before{content:"❯";}
+  .masthead h1{
+    font-size:clamp(28px,4vw,40px);
+    margin:0 0 14px;
+  }
+  .masthead p{
+    max-width:640px;
+    color:var(--text-muted);
+    font-size:16px;
+    margin:0;
+  }
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:22px;
+  }
+  .meta-chip{
+    font-size:12.5px;
+    font-family:"IBM Plex Mono",monospace;
+    color:var(--text-muted);
+    border:1px solid var(--border);
+    background:var(--surface);
+    padding:5px 10px;
+    border-radius:5px;
+  }
+
+  /* ---- side nav ---- */
+  .nav{
+    position:sticky;
+    top:32px;
+    align-self:start;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .nav a{
+    display:flex;
+    gap:10px;
+    align-items:baseline;
+    padding:8px 10px;
+    border-radius:6px;
+    color:var(--text-muted);
+    text-decoration:none;
+    font-size:14px;
+    border-left:2px solid transparent;
+  }
+  .nav a .n{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px;
+    color:var(--code-muted);
+  }
+  .nav a:hover{background:var(--surface-alt); color:var(--text);}
+  .nav a.active{
+    color:var(--text);
+    background:var(--surface-alt);
+    border-left-color:var(--accent);
+    font-weight:500;
+  }
+  .nav a.active .n{color:var(--accent);}
+
+  /* ---- main content ---- */
+  main{min-width:0;}
+  .phase{
+    margin-bottom:64px;
+    scroll-margin-top:28px;
+  }
+  .phase-head{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  .phase-num{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:13px;
+    color:var(--accent);
+    background:var(--accent-soft);
+    border-radius:50%;
+    width:34px;height:34px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    margin-top:2px;
+  }
+  .phase-head h2{font-size:22px;margin:0 0 4px;}
+  .phase-head .sub{color:var(--text-muted); font-size:14.5px;}
+
+  .step{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px 22px;
+    margin-bottom:14px;
+    box-shadow:var(--shadow);
+  }
+  .step h3{
+    font-size:15.5px;
+    margin:0 0 8px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .step p{margin:0 0 12px; font-size:14.5px; color:var(--text);}
+  .step p:last-child{margin-bottom:0;}
+  .step p.note{color:var(--text-muted); font-size:13.5px;}
+
+  .where{
+    display:inline-block;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11.5px;
+    letter-spacing:0.03em;
+    color:var(--text-muted);
+    background:var(--surface-alt);
+    border:1px solid var(--border);
+    padding:2px 8px;
+    border-radius:20px;
+    margin-bottom:10px;
+  }
+  .where.admin{color:var(--danger); background:var(--danger-soft); border-color:transparent;}
+  .where.linux{color:var(--accent-2); background:var(--accent-2-soft); border-color:transparent;}
+
+  .codeblock{
+    position:relative;
+    background:var(--code-bg);
+    border-radius:8px;
+    margin:10px 0 14px;
+    overflow:hidden;
+  }
+  .codeblock .bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:8px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .codeblock .bar span{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    color:var(--code-muted);
+    letter-spacing:0.04em;
+  }
+  .copy-btn{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.15);
+    color:var(--code-muted);
+    padding:3px 9px;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  .copy-btn:hover{color:var(--code-text); border-color:rgba(255,255,255,0.35);}
+  .copy-btn:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  .codeblock pre{
+    margin:0;
+    padding:14px 16px;
+    overflow-x:auto;
+    font-size:13px;
+    line-height:1.7;
+    color:var(--code-text);
+  }
+  .codeblock pre .c{color:var(--code-muted);}
+
+  .callout{
+    border-radius:10px;
+    padding:16px 18px;
+    margin:16px 0;
+    font-size:14px;
+    display:flex;
+    gap:12px;
+  }
+  .callout .icon{flex-shrink:0; font-family:"IBM Plex Mono",monospace; font-weight:600;}
+  .callout.warn{background:var(--danger-soft); color:var(--text);}
+  .callout.warn .icon{color:var(--danger);}
+  .callout.tip{background:var(--accent-2-soft); color:var(--text);}
+  .callout.tip .icon{color:var(--accent-2);}
+  .callout p{margin:0 0 6px;}
+  .callout p:last-child{margin:0;}
+
+  table.check{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  table.check th, table.check td{
+    text-align:left;
+    padding:11px 14px;
+    border-bottom:1px solid var(--border);
+  }
+  table.check th{
+    background:var(--surface-alt);
+    font-size:12px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    font-weight:600;
+  }
+  table.check tr:last-child td{border-bottom:none;}
+  table.check td.cmd{font-family:"IBM Plex Mono",monospace; font-size:13px; white-space:nowrap;}
+  table.check td.exp{color:var(--text-muted);}
+
+  .flow{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin:18px 0 8px;
+  }
+  .flow .node{
+    font-size:13px;
+    font-family:"IBM Plex Mono",monospace;
+    background:var(--surface);
+    border:1px solid var(--border);
+    padding:8px 14px;
+    border-radius:20px;
+    color:var(--text-muted);
+  }
+  .flow .node.active{color:var(--text); border-color:var(--accent); background:var(--accent-soft);}
+  .flow .arrow{align-self:center; color:var(--text-muted);}
+
+  footer{
+    grid-column:1/-1;
+    margin-top:24px;
+    padding-top:22px;
+    border-top:1px solid var(--border);
+    color:var(--text-muted);
+    font-size:13px;
+  }
+
+  @media (prefers-reduced-motion: no-preference){
+    html{scroll-behavior:smooth;}
+  }
+</style>
+
+<div class="shell">
+  <div class="masthead">
+    <span class="eyebrow">windows 10 · wsl2 · ubuntu</span>
+    <h1>WSL 干净重装指南</h1>
+    <p>先彻底卸载旧环境，再按正确顺序重装，最后用一套配置习惯避开上次踩过的权限坑。四个阶段，照着做完就能拿到一个干净、权限正常的 WSL。</p>
+    <div class="meta-row">
+      <span class="meta-chip">目标系统 Windows 10</span>
+      <span class="meta-chip">发行版 Ubuntu LTS</span>
+      <span class="meta-chip">不保留旧数据</span>
+      <span class="meta-chip">预计 20–40 分钟 + 1 次重启</span>
+    </div>
+  </div>
+
+  <nav class="nav" id="nav">
+    <a href="#uninstall"><span class="n">00</span> 彻底卸载</a>
+    <a href="#install"><span class="n">01</span> 干净安装</a>
+    <a href="#configure"><span class="n">02</span> 避坑配置</a>
+    <a href="#verify"><span class="n">03</span> 验收清单</a>
+    <a href="#trouble"><span class="n">04</span> 万一又报错</a>
+  </nav>
+
+  <main>
+
+    <section class="phase" id="uninstall">
+      <div class="phase-head">
+        <span class="phase-num">00</span>
+        <div>
+          <h2>彻底卸载现有 WSL</h2>
+          <div class="sub">目标：不留下旧发行版、旧虚拟磁盘、旧的 Windows 功能开关</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="icon">!</span>
+        <div>
+          <p><strong>会清空数据。</strong>下面的 <code>wsl --unregister</code> 会直接删除该发行版对应的虚拟磁盘（.vhdx），里面的文件、装的软件全部一起没了，且不可恢复。</p>
+          <p>你确认过不需要保留旧数据，可以直接往下走；如果临时想起还有东西要留，先停下来用资源管理器打开 <code>\\wsl$\Ubuntu\home\你的用户名</code> 复制出来。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>1. 看看现在装了什么</h3>
+        <span class="where admin">PowerShell（以管理员身份运行）</span>
+        <div class="codeblock">
+          <div class="bar"><span>powershell</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>wsl -l -v</pre>
+        </div>
+        <p class="note">记下列出的发行版名字（比如 <code>Ubuntu</code> 或 <code>Ubuntu-22.04</code>），后面卸载要用到精确名字。</p>
+      </div>
+
+      <div class="step">
+        <h3>2. 关闭并注销发行版</h3>
+        <span class="where admin">PowerShell（以管理员身份运行）</span>
+        <div class="codeblock">
+          <div class="bar"><span>powershell</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>wsl --shutdown
+wsl --unregister <span class="c">发行版名字，例如 Ubuntu</span></pre>
+        </div>
+        <p class="note">这一步执行完，之前那些"权限没装好、装了些不明白的东西"的旧环境就彻底没了，相当于清空重来。</p>
+      </div>
+
+      <div class="step">
+        <h3>3. 从"应用"里卸载发行版本体</h3>
+        <p><code>--unregister</code> 只删数据，Store 里的应用图标还在。打开 <strong>设置 → 应用 → 应用和功能</strong>，搜索 <code>Ubuntu</code>，卸载对应条目。如果之前还装过其它发行版（Debian、Kali 等）也一并卸载。</p>
+      </div>
+
+      <div class="step">
+        <h3>4. 关掉两个 Windows 功能开关</h3>
+        <span class="where admin">PowerShell（以管理员身份运行）</span>
+        <div class="codeblock">
+          <div class="bar"><span>powershell</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>dism.exe /online /disable-feature /featurename:Microsoft-Windows-Subsystem-Linux /norestart
+dism.exe /online /disable-feature /featurename:VirtualMachinePlatform /norestart</pre>
+        </div>
+        <p class="note">这两个开关就是 WSL 依赖的底层系统组件，关掉再重新打开，能把一些"配置了自己也不知道的东西"顺带清掉。</p>
+      </div>
+
+      <div class="step">
+        <h3>5. 重启电脑</h3>
+        <p>功能开关的变化要重启才会真正生效，别跳过。</p>
+      </div>
+
+      <div class="step">
+        <h3>6.（可选）清掉残留文件</h3>
+        <p>重启后，如果想做到彻底干净，检查一下这两个位置，有残留就删掉：</p>
+        <div class="codeblock">
+          <div class="bar"><span>资源管理器路径</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>%LOCALAPPDATA%\Packages\  <span class="c">← 找名字含 Canonical / Ubuntu 的文件夹，删除</span>
+%USERPROFILE%\.wslconfig  <span class="c">← 旧的全局配置文件，不需要可以删</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase" id="install">
+      <div class="phase-head">
+        <span class="phase-num">01</span>
+        <div>
+          <h2>干净安装 WSL2 + Ubuntu</h2>
+          <div class="sub">Windows 10 上有两条路：先试一键安装，行不通再走手动流程</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>0. 先确认 Windows 版本够新</h3>
+        <p>按 <code>Win + R</code>，输入 <code>winver</code> 回车。WSL2 要求 <strong>版本 2004（内部版本 19041）或更高</strong>。版本不够的话，先去"设置 → 更新和安全"把系统更新到位，否则下面所有步骤都装不上 WSL2，只能退回兼容性差很多的 WSL1。</p>
+      </div>
+
+      <div class="step">
+        <h3>1. 先试一条命令</h3>
+        <span class="where admin">PowerShell（以管理员身份运行）</span>
+        <div class="codeblock">
+          <div class="bar"><span>powershell</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>wsl --install -d Ubuntu-22.04</pre>
+        </div>
+        <p class="note">版本较新的 Windows 10 装完自动搞定内核、虚拟机平台、发行版下载，重启一次即可跳到"第一次启动"那一步。如果这条命令报错或卡住，走下面的手动流程，不会冲突。</p>
+      </div>
+
+      <div class="step">
+        <h3>2. 手动方式 · 重新打开两个功能开关</h3>
+        <span class="where admin">PowerShell（以管理员身份运行）</span>
+        <div class="codeblock">
+          <div class="bar"><span>powershell</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart</pre>
+        </div>
+        <p class="note">开完重启一次电脑。</p>
+      </div>
+
+      <div class="step">
+        <h3>3. 手动方式 · 装 WSL2 内核更新包</h3>
+        <p>重启后如果执行 <code>wsl --set-default-version 2</code> 提示缺少内核组件，去这个地址下载官方安装包，双击装上（这是唯一需要手动下载的部分）：</p>
+        <div class="codeblock">
+          <div class="bar"><span>下载地址</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>https://aka.ms/wsl2kernel</pre>
+        </div>
+        <div class="codeblock">
+          <div class="bar"><span>powershell</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>wsl --set-default-version 2</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>4. 从 Microsoft Store 装 Ubuntu</h3>
+        <p>打开 Microsoft Store，搜索 <strong>Ubuntu 22.04.x LTS</strong>（明确选带版本号的 LTS，而不是笼统的 "Ubuntu"，方便以后知道自己具体装的哪个版本），点安装。</p>
+      </div>
+
+      <div class="step">
+        <h3>5. 第一次启动：创建 Linux 用户</h3>
+        <p>从开始菜单打开 Ubuntu，第一次会让你设置一个 <strong>Linux 用户名和密码</strong>——这和你的 Windows 账号完全独立，是你之后在 WSL 里的默认登录身份。</p>
+        <div class="callout tip">
+          <span class="icon">✓</span>
+          <div>
+            <p>用户名用全小写、不带空格的短单词（比如 <code>jack</code>）。输入密码时屏幕不会显示任何字符，这是正常的，照常输入回车确认即可。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase" id="configure">
+      <div class="phase-head">
+        <span class="phase-num">02</span>
+        <div>
+          <h2>正确配置，避开上次的坑</h2>
+          <div class="sub">你之前遇到的"权限装不好、多了些不明配置"，八成出在这几件事上</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>1. 系统先更新一遍</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>sudo apt update && sudo apt upgrade -y</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>2. 项目文件放在 Linux 这一侧，别放 /mnt/c</h3>
+        <p>这是最常见的坑：把项目放在 <code>/mnt/c/Users/...</code>（也就是 Windows 的 C 盘）里跑，Windows 文件系统不支持 Unix 权限位，Python/Node 装依赖、建虚拟环境时权限判断会各种错乱。</p>
+        <div class="callout tip">
+          <span class="icon">✓</span>
+          <div>
+            <p>项目一律放在 Linux 自己的 home 目录下，比如 <code>~/projects/</code>，而不是 Windows 盘符路径。速度也会快很多。</p>
+          </div>
+        </div>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>mkdir -p ~/projects
+cd ~/projects</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>3. 虚拟环境：装工具用 sudo，日常操作不用 sudo</h3>
+        <p>权限问题的另一个常见来源：一会儿 <code>sudo pip install</code>，一会儿普通用户 <code>pip install</code>，两者交替产生一堆属主是 <code>root</code> 的文件，之后普通身份就读不了、装不了。</p>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre><span class="c"># 只有这一步系统级安装用 sudo，且只做一次</span>
+sudo apt install -y python3-venv python3-pip
+
+<span class="c"># 之后每个项目里都这样建虚拟环境，不加 sudo</span>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install <span class="c">你要装的包</span></pre>
+        </div>
+        <div class="callout warn">
+          <span class="icon">!</span>
+          <div><p>记住一条规矩：<strong>只要命令行前面出现了 <code>(.venv)</code>，就绝不加 sudo。</strong>需要 sudo 的只有"给系统装 python3-venv 这类系统包"这一类操作。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>4. 确认自己不是 root 用户</h3>
+        <p>正常情况下打开终端应该是你自己的用户名，不是 <code>root</code>。如果不小心变成了 root（常见于之前瞎配置过默认用户），用下面命令改回来：</p>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>whoami   <span class="c"># 应该输出你自己的用户名，不是 root</span></pre>
+        </div>
+        <span class="where admin">PowerShell</span>
+        <div class="codeblock">
+          <div class="bar"><span>powershell</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>ubuntu2204.exe config --default-user 你的用户名</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>5. 一旦弄乱了文件属主，一条命令修复</h3>
+        <p>以后万一又出现"权限不够"之类的报错，先怀疑是不是某个文件夹属主变成了 root，用这条命令把整个目录的属主收回自己名下：</p>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>sudo chown -R $USER:$USER ~/projects</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>6. 用 VS Code 开发就装 WSL 扩展</h3>
+        <p>在 Windows 上装好 VS Code 后，装上 <strong>WSL</strong> 这个官方扩展。之后在 Ubuntu 终端里 <code>cd</code> 到项目目录，输入 <code>code .</code>，VS Code 会在 Linux 一侧打开项目——文件始终留在 Linux 文件系统里，不会因为跨系统编辑产生换行符或权限问题。</p>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>code .</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>7.（可选）限制一下 WSL 能占用的内存</h3>
+        <p>WSL2 默认会占用较多内存。如果想控制一下，在 <strong>Windows</strong> 的用户目录下新建 <code>.wslconfig</code> 文件：</p>
+        <span class="where admin">Windows 记事本，路径 %UserProfile%\.wslconfig</span>
+        <div class="codeblock">
+          <div class="bar"><span>ini</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>[wsl2]
+memory=6GB
+processors=4</pre>
+        </div>
+        <p class="note">改完在 PowerShell 里执行 <code>wsl --shutdown</code> 让配置生效。数值按自己电脑内存量调整，非必须步骤。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="verify">
+      <div class="phase-head">
+        <span class="phase-num">03</span>
+        <div>
+          <h2>验收清单</h2>
+          <div class="sub">全部装完后，逐条跑一遍，确认没有把老问题带回来</div>
+        </div>
+      </div>
+
+      <table class="check">
+        <tr><th>检查项</th><th>命令</th><th>正常结果</th></tr>
+        <tr>
+          <td>WSL 版本正确</td>
+          <td class="cmd">wsl -l -v</td>
+          <td class="exp">Ubuntu 一行，VERSION 列是 <strong>2</strong></td>
+        </tr>
+        <tr>
+          <td>发行版版本</td>
+          <td class="cmd">lsb_release -a</td>
+          <td class="exp">显示 Ubuntu 22.04（或你选的版本）</td>
+        </tr>
+        <tr>
+          <td>不是 root 登录</td>
+          <td class="cmd">whoami</td>
+          <td class="exp">输出你自己的用户名</td>
+        </tr>
+        <tr>
+          <td>虚拟环境能建能用</td>
+          <td class="cmd">python3 -m venv t && source t/bin/activate</td>
+          <td class="exp">提示符出现 <code>(t)</code>，无任何权限报错</td>
+        </tr>
+        <tr>
+          <td>新建文件属主正确</td>
+          <td class="cmd">touch ~/x && ls -l ~/x</td>
+          <td class="exp">属主是你自己，不是 root</td>
+        </tr>
+        <tr>
+          <td>项目不在 Windows 盘里</td>
+          <td class="cmd">pwd</td>
+          <td class="exp">路径以 <code>/home/你的用户名</code> 开头，而不是 <code>/mnt/c/...</code></td>
+        </tr>
+      </table>
+    </section>
+
+    <section class="phase" id="trouble">
+      <div class="phase-head">
+        <span class="phase-num">04</span>
+        <div>
+          <h2>万一又报错</h2>
+          <div class="sub">按老问题最可能复发的原因排查，别急着再重装一次</div>
+        </div>
+      </div>
+
+      <div class="flow">
+        <span class="node">出现 Permission denied</span>
+        <span class="arrow">→</span>
+        <span class="node active">先查文件属主</span>
+        <span class="arrow">→</span>
+        <span class="node">chown 修复</span>
+        <span class="arrow">→</span>
+        <span class="node">仍不行再查 sudo 混用</span>
+      </div>
+
+      <div class="step">
+        <h3>pip / npm 安装报 Permission denied</h3>
+        <p>基本可以确定是在系统 Python 环境或者曾经 sudo 装过东西。先 <code>ls -l</code> 看报错路径下文件的属主，如果是 root，就用第 02 阶段第 5 步的 <code>chown -R</code> 收回来；以后严格遵守"进了 <code>(.venv)</code> 就不用 sudo"。</p>
+      </div>
+
+      <div class="step">
+        <h3>项目里的文件时不时"锁住"、改不了、跑得很慢</h3>
+        <p>大概率项目还放在 <code>/mnt/c/...</code>。用 <code>pwd</code> 确认一下，是的话把整个项目文件夹复制到 <code>~/projects/</code> 下重新跑。</p>
+      </div>
+
+      <div class="step">
+        <h3>wsl 命令提示找不到发行版 / 启动失败</h3>
+        <p>先 <code>wsl --shutdown</code> 再重新打开一次；如果还不行，<code>wsl --update</code> 更新一下 WSL 本体，是 Windows 10 上常被忽略的一步。</p>
+      </div>
+
+      <div class="step">
+        <h3>怀疑环境又乱了，想重来</h3>
+        <p>不用重装整个 WSL 功能，回到第 00 阶段第 2 步单独 <code>wsl --unregister</code> 这一个发行版，再重新执行第 01 阶段第 4、5 步装发行版即可，比整套卸载重来快得多。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    命令均在 Windows 10（build ≥ 19041）+ WSL2 + Ubuntu LTS 环境下验证过的标准流程；不同 Windows 更新版本下个别提示文案可能略有差异，以实际弹出的内容为准。
+  </footer>
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var pre = btn.closest('.codeblock').querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(function(){ btn.textContent = old; }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){
+          fallbackCopy(text); done();
+        });
+      } else {
+        fallbackCopy(text); done();
+      }
+    });
+  });
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function onScroll(){
+    var pos = window.scrollY + 120;
+    var idx = 0;
+    sections.forEach(function(sec, i){
+      if(sec && sec.offsetTop <= pos) idx = i;
+    });
+    links.forEach(function(a,i){ a.classList.toggle('active', i===idx); });
+  }
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>

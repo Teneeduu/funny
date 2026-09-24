@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WSL 联网代理配置</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f5f6f2; --surface:#ffffff; --surface-alt:#ebede6;
+    --text:#1b1f1c; --text-muted:#5c655d; --border:#dcdfd5;
+    --accent:#c2531e; --accent-soft:#f4e3d6;
+    --accent-2:#3d7a58; --accent-2-soft:#dfeee5;
+    --danger:#a83a2f; --danger-soft:#f6e0dc;
+    --code-bg:#1b1f1c; --code-text:#e9ebe4; --code-muted:#8f988f;
+    --shadow: 0 1px 2px rgba(20,22,18,0.04), 0 6px 20px rgba(20,22,18,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15181a; --surface:#1c2023; --surface-alt:#22262a;
+      --text:#e9ebe6; --text-muted:#9aa39a; --border:#2d3230;
+      --accent:#e28248; --accent-soft:#3a2c22;
+      --accent-2:#6cb890; --accent-2-soft:#1f342a;
+      --danger:#e2786d; --danger-soft:#3a2422;
+      --code-bg:#101314; --code-text:#e9ebe4; --code-muted:#6f7a70;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15181a; --surface:#1c2023; --surface-alt:#22262a;
+    --text:#e9ebe6; --text-muted:#9aa39a; --border:#2d3230;
+    --accent:#e28248; --accent-soft:#3a2c22;
+    --accent-2:#6cb890; --accent-2-soft:#1f342a;
+    --danger:#e2786d; --danger-soft:#3a2422;
+    --code-bg:#101314; --code-text:#e9ebe4; --code-muted:#6f7a70;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Sans", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-weight:600; text-wrap:balance; letter-spacing:-0.01em;}
+  code, pre, .mono{font-family:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;}
+  .shell{ max-width:1180px; margin:0 auto; padding:48px 28px 96px; display:grid; grid-template-columns:220px minmax(0,1fr); gap:56px; }
+  @media (max-width:880px){ .shell{grid-template-columns:1fr; padding:28px 18px 72px;} .nav{display:none;} }
+  .masthead{ grid-column:1/-1; padding-bottom:36px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:"IBM Plex Mono", monospace; font-size:12.5px; letter-spacing:0.08em; color:var(--accent); background:var(--accent-soft); padding:5px 10px 5px 8px; border-radius:4px; margin-bottom:18px; }
+  .eyebrow::before{content:"❯";}
+  .masthead h1{ font-size:clamp(28px,4vw,40px); margin:0 0 14px; }
+  .masthead p{ max-width:640px; color:var(--text-muted); font-size:16px; margin:0; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+  .meta-chip{ font-size:12.5px; font-family:"IBM Plex Mono",monospace; color:var(--text-muted); border:1px solid var(--border); background:var(--surface); padding:5px 10px; border-radius:5px; }
+  .nav{ position:sticky; top:32px; align-self:start; display:flex; flex-direction:column; gap:2px; }
+  .nav a{ display:flex; gap:10px; align-items:baseline; padding:8px 10px; border-radius:6px; color:var(--text-muted); text-decoration:none; font-size:14px; border-left:2px solid transparent; }
+  .nav a .n{ font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--code-muted); }
+  .nav a:hover{ background:var(--surface-alt); color:var(--text); }
+  .nav a.active{ color:var(--text); background:var(--surface-alt); border-left-color:var(--accent); font-weight:500; }
+  .nav a.active .n{ color:var(--accent); }
+  main{min-width:0;}
+  .phase{ margin-bottom:64px; scroll-margin-top:28px; }
+  .phase-head{ display:flex; align-items:flex-start; gap:16px; margin-bottom:22px; }
+  .phase-num{ font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--accent); background:var(--accent-soft); border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+  .phase-head h2{ font-size:22px; margin:0 0 4px; }
+  .phase-head .sub{ color:var(--text-muted); font-size:14.5px; }
+  .step{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 22px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .step h3{ font-size:15.5px; margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+  .step p{ margin:0 0 12px; font-size:14.5px; color:var(--text); }
+  .step p:last-child{ margin-bottom:0; }
+  .step p.note{ color:var(--text-muted); font-size:13.5px; }
+  .where{ display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:0.03em; color:var(--text-muted); background:var(--surface-alt); border:1px solid var(--border); padding:2px 8px; border-radius:20px; margin-bottom:10px; }
+  .where.linux{ color:var(--accent-2); background:var(--accent-2-soft); border-color:transparent; }
+  .where.win{ color:var(--accent); background:var(--accent-soft); border-color:transparent; }
+  .codeblock{ position:relative; background:var(--code-bg); border-radius:8px; margin:10px 0 14px; overflow:hidden; }
+  .codeblock .bar{ display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .codeblock .bar span{ font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--code-muted); letter-spacing:0.04em; }
+  .copy-btn{ font-family:"IBM Plex Mono",monospace; font-size:11px; background:transparent; border:1px solid rgba(255,255,255,0.15); color:var(--code-muted); padding:3px 9px; border-radius:5px; cursor:pointer; }
+  .copy-btn:hover{ color:var(--code-text); border-color:rgba(255,255,255,0.35); }
+  .copy-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .codeblock pre{ margin:0; padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.7; color:var(--code-text); }
+  .codeblock pre .c{ color:var(--code-muted); }
+  .callout{ border-radius:10px; padding:16px 18px; margin:16px 0; font-size:14px; display:flex; gap:12px; }
+  .callout .icon{ flex-shrink:0; font-family:"IBM Plex Mono",monospace; font-weight:600; }
+  .callout.warn{ background:var(--danger-soft); color:var(--text); }
+  .callout.warn .icon{ color:var(--danger); }
+  .callout.tip{ background:var(--accent-2-soft); color:var(--text); }
+  .callout.tip .icon{ color:var(--accent-2); }
+  .callout p{ margin:0 0 6px; }
+  .callout p:last-child{ margin:0; }
+  table.check{ width:100%; border-collapse:collapse; font-size:14px; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  table.check th, table.check td{ text-align:left; padding:11px 14px; border-bottom:1px solid var(--border); }
+  table.check th{ background:var(--surface-alt); font-size:12px; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); font-weight:600; }
+  table.check tr:last-child td{ border-bottom:none; }
+  table.check td.cmd{ font-family:"IBM Plex Mono",monospace; font-size:13px; white-space:nowrap; }
+  table.check td.exp{ color:var(--text-muted); }
+  .diagram{ display:flex; align-items:center; gap:0; margin:18px 0 8px; flex-wrap:wrap; }
+  .diagram .box{ font-size:13px; font-family:"IBM Plex Mono",monospace; background:var(--surface); border:1px solid var(--border); padding:10px 16px; border-radius:8px; text-align:center; }
+  .diagram .box strong{ display:block; font-family:"IBM Plex Sans",sans-serif; font-size:12px; color:var(--text-muted); font-weight:500; margin-bottom:3px; }
+  .diagram .arrow{ padding:0 10px; color:var(--text-muted); font-size:16px; }
+  footer{ grid-column:1/-1; margin-top:24px; padding-top:22px; border-top:1px solid var(--border); color:var(--text-muted); font-size:13px; }
+  @media (prefers-reduced-motion: no-preference){ html{ scroll-behavior:smooth; } }
+</style>
+
+<div class="shell">
+  <div class="masthead">
+    <span class="eyebrow">wsl2 · nat 网络 · clash / v2ray</span>
+    <h1>WSL 联网代理配置</h1>
+    <p>Windows 上开着 Clash / V2ray 这类代理时，WSL2 不会自动跟着走代理，遇到 <code>apt update</code> 报 DNS 解析失败多半是这个原因。这份指南记录怎么让 WSL 里的命令行工具乃至 <code>apt</code> 都吃到 Windows 那边的代理。</p>
+    <div class="meta-row">
+      <span class="meta-chip">WSL2 · NAT 网络模式</span>
+      <span class="meta-chip">Windows 10</span>
+      <span class="meta-chip">Clash / V2ray 等代理软件</span>
+    </div>
+  </div>
+
+  <nav class="nav" id="nav">
+    <a href="#why"><span class="n">00</span> 为什么不通</a>
+    <a href="#clash"><span class="n">01</span> 代理端开放局域网</a>
+    <a href="#hostip"><span class="n">02</span> 拿主机地址</a>
+    <a href="#shellproxy"><span class="n">03</span> 命令行走代理</a>
+    <a href="#aptproxy"><span class="n">04</span> apt 走代理</a>
+    <a href="#tun"><span class="n">05</span> TUN 模式还不通</a>
+    <a href="#verify"><span class="n">06</span> 验收清单</a>
+  </nav>
+
+  <main>
+
+    <section class="phase" id="why">
+      <div class="phase-head">
+        <span class="phase-num">00</span>
+        <div>
+          <h2>为什么 WSL 不会自动走 Windows 的代理</h2>
+          <div class="sub">两边是两套独立的网络栈，不共享"系统代理"设置</div>
+        </div>
+      </div>
+      <div class="step">
+        <p>Clash / V2ray 在 Windows 上开启后，一般是改 Windows 的"系统代理"设置，或者监听 <code>127.0.0.1</code> 的某个端口。这两者 WSL2 都摸不到——WSL2 走的是自己独立的虚拟网卡（NAT 模式），既不读 Windows 注册表里的系统代理配置，也没法通过 <code>127.0.0.1</code> 连到 Windows（WSL 里的 <code>127.0.0.1</code> 是它自己的回环地址，跟 Windows 的是两个东西）。</p>
+        <div class="diagram">
+          <div class="box"><strong>WSL 里的程序</strong>curl / apt / git</div>
+          <span class="arrow">──✕──</span>
+          <div class="box"><strong>Windows</strong>Clash :7890</div>
+        </div>
+        <p class="note">所以想让 WSL 也走代理，得做两件事：让代理监听 WSL 摸得到的地址，再让 WSL 里的程序知道往哪儿发请求。下面 01~04 步就是干这个的。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="clash">
+      <div class="phase-head">
+        <span class="phase-num">01</span>
+        <div>
+          <h2>代理软件里打开"允许局域网连接"</h2>
+          <div class="sub">默认只监听 127.0.0.1，WSL 连不上，得让它对外监听</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>Clash 系客户端</h3>
+        <span class="where win">Windows · Clash 设置界面</span>
+        <p>打开 <strong>Allow LAN</strong>（允许局域网连接）开关，记下混合端口 / HTTP 端口（默认常见是 <code>7890</code>）。V2rayN 之类的客户端找"允许来自局域网的连接"这一项，效果一样。</p>
+        <p class="note">开这个开关之后，理论上局域网里其它设备也能用你这个代理，如果不放心可以在 Windows 防火墙里把这个端口限制成只允许 WSL 的网段访问，不是必须但更严谨。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="hostip">
+      <div class="phase-head">
+        <span class="phase-num">02</span>
+        <div>
+          <h2>从 WSL 里拿到 Windows 主机地址</h2>
+          <div class="sub">这个地址就是接下来代理配置里要用的"服务器地址"</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>查默认网关</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>ip route | grep default | awk '{print $3}'</pre>
+        </div>
+        <p class="note">WSL2 是 NAT 网络，这个默认网关地址就是 Windows 主机在 WSL 这个虚拟网络里对应的 IP，用它来访问跑在 Windows 上的代理。如果之前手动把 <code>/etc/resolv.conf</code> 写死过（比如改成 <code>8.8.8.8</code>），跟这一步没关系，两者互不影响。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="shellproxy">
+      <div class="phase-head">
+        <span class="phase-num">03</span>
+        <div>
+          <h2>让命令行工具走代理</h2>
+          <div class="sub">curl / wget / git / pip / npm 这些都认标准代理环境变量</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>写进 .bashrc，一劳永逸</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>echo '
+export WSL_HOST=$(ip route | grep default | awk "{print \$3}")
+export http_proxy="http://$WSL_HOST:7890"
+export https_proxy="http://$WSL_HOST:7890"
+export all_proxy="socks5://$WSL_HOST:7890"
+' >> ~/.bashrc
+source ~/.bashrc
+echo $http_proxy</pre>
+        </div>
+        <p class="note"><code>7890</code> 换成你代理软件实际监听的端口。写进 <code>.bashrc</code> 之后每次开新终端会自动生效；<code>source</code> 是让当前这个终端立刻生效，不用关掉重开。</p>
+        <div class="callout tip">
+          <span class="icon">✓</span>
+          <div><p>配完用 <code>curl -I https://www.google.com</code> 测一下，能返回 HTTP 状态码就说明这层通了。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase" id="aptproxy">
+      <div class="phase-head">
+        <span class="phase-num">04</span>
+        <div>
+          <h2>单独给 apt 配代理</h2>
+          <div class="sub">apt 不读 http_proxy 这些环境变量，得走自己的配置文件</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>写一个 apt 代理配置</h3>
+        <span class="where linux">Ubuntu 终端</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>echo "Acquire::http::Proxy \"http://$WSL_HOST:7890\";
+Acquire::https::Proxy \"http://$WSL_HOST:7890\";" | sudo tee /etc/apt/apt.conf.d/proxy.conf</pre>
+        </div>
+        <p class="note">要求前面第 03 步已经在当前终端里 <code>export</code> 过 <code>$WSL_HOST</code>，否则这里会写成空值。写完再跑 <code>sudo apt update</code>，能正常拉到索引就是配对了。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="tun">
+      <div class="phase-head">
+        <span class="phase-num">05</span>
+        <div>
+          <h2>如果代理是 TUN 模式，前面都配了还是不通</h2>
+          <div class="sub">TUN（全局虚拟网卡）模式会接管全系统流量，容易把 WSL 的网段一起吞掉</div>
+        </div>
+      </div>
+      <div class="step">
+        <h3>先定位是不是这个原因</h3>
+        <p>临时把 Clash / V2ray 切回"系统代理"模式（不是 TUN/虚拟网卡模式），再测一次网络。如果切回去就通了，说明问题出在 TUN 模式接管了 WSL 的虚拟网段但没放行。</p>
+      </div>
+      <div class="step">
+        <h3>解决：把 WSL 网段加入直连 / 放行规则</h3>
+        <span class="where linux">先查 WSL 自己的网段</span>
+        <div class="codeblock">
+          <div class="bar"><span>bash</span><button class="copy-btn" data-copy>复制</button></div>
+          <pre>ip addr show eth0 | grep inet</pre>
+        </div>
+        <p>拿到类似 <code>172.x.x.x/20</code> 这样的网段后，去 Clash / V2ray 的"规则"或"路由"设置里，把这个网段加进"直连"或"绕过代理"列表——注意是让 TUN 驱动放行这个网段的流量能正常出网，而不是让它绕开代理直连外网（那样又变回最初不通的状态），具体选项名称因客户端而异，找"Bypass"/"直连"/"排除"这类字眼。</p>
+      </div>
+    </section>
+
+    <section class="phase" id="verify">
+      <div class="phase-head">
+        <span class="phase-num">06</span>
+        <div>
+          <h2>验收清单</h2>
+          <div class="sub">换了新代理软件、新电脑，或者重装 WSL 之后，照这个走一遍</div>
+        </div>
+      </div>
+      <table class="check">
+        <tr><th>检查项</th><th>命令</th><th>正常结果</th></tr>
+        <tr><td>拿到主机地址</td><td class="cmd">echo $WSL_HOST</td><td class="exp">输出一个 IP，不为空</td></tr>
+        <tr><td>命令行代理生效</td><td class="cmd">curl -I https://www.google.com</td><td class="exp">返回 HTTP/2 200 之类的状态行</td></tr>
+        <tr><td>apt 代理生效</td><td class="cmd">sudo apt update</td><td class="exp">正常拉取索引，无 Temporary failure</td></tr>
+        <tr><td>DNS 正常</td><td class="cmd">cat /etc/resolv.conf</td><td class="exp">有一行 nameserver，指向可用地址</td></tr>
+      </table>
+    </section>
+
+  </main>
+
+  <footer>
+    这份配置是"当前终端会话 + 这个用户"级别的，重装 WSL 发行版之后 .bashrc 和 apt 配置会一起清空，需要重新走一遍 01~04；只是关掉重开电脑、代理软件重启，不影响。
+  </footer>
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var pre = btn.closest('.codeblock').querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(function(){ btn.textContent = old; }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text); done(); });
+      } else { fallbackCopy(text); done(); }
+    });
+  });
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function onScroll(){
+    var pos = window.scrollY + 120;
+    var idx = 0;
+    sections.forEach(function(sec, i){ if(sec && sec.offsetTop <= pos) idx = i; });
+    links.forEach(function(a,i){ a.classList.toggle('active', i===idx); });
+  }
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
